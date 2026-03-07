@@ -1,4 +1,5 @@
 🤖 OSINT Dashboard Bot для Telegram
+
 Повнофункціональний бот для OSINT дослідження в Telegram. Інтегрує кілька потужних інструментів для пошуку інформації.
 📋 Функціональність
 1. 🔍 Sherlock - Username Пошук
@@ -79,6 +80,7 @@ WHOIS:
 github.com
 HIBP/Email Search:
 email: user@example.com
+
 📊 Архітектура коду
 osint_bot.py
 ├── OSINTBot клас
@@ -95,6 +97,7 @@ osint_bot.py
     ├── handle_message() - обробка запитів
     ├── format_result() - форматування результатів
     └── run() - запуск бота
+
 🔑 API & Джерела Даних
 Безплатні API (без ключа):
 IP-API - GeoIP (безплатно до 45 запитів/хвилину)

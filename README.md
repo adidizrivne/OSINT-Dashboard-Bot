@@ -83,6 +83,7 @@ email: user@example.com
 
 📊 Архітектура коду
 osint_bot.py
+
 ├── OSINTBot клас
 │   ├── sherlock_search() - пошук користувачів
 │   ├── geoip_lookup() - геолокація
@@ -91,12 +92,13 @@ osint_bot.py
 │   ├── email_search() - пошук email
 │   └── Валідація даних
 │
-└── TelegramBot клас
+└── TelegramBot клас 
     ├── start() - стартова команда
     ├── button_callback() - обробка меню
     ├── handle_message() - обробка запитів
     ├── format_result() - форматування результатів
     └── run() - запуск бота
+
 
 🔑 API & Джерела Даних
 Безплатні API (без ключа):
@@ -111,6 +113,7 @@ WHOIS: Без офіційних ліміту
 Sherlock: ~2-5 хв на один username
 HIBP: 1500 запитів/год без ключа
 EmailRep: 100 запитів/день без ключа
+
 ⚙️ Розширена Конфігурація
 Додавання свого API ключа (опціонально)
 Відредагуй osint_config.json після першого запуску:

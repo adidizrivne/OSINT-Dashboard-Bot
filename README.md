@@ -52,8 +52,8 @@
 
 ```bash
 # Клонуй репозиторій (або завантаж файли)
-git clone <url>
-cd osint-bot
+git clone https://github.com/adidizrivne/OSINT-Dashboard-Bot
+cd OSINT-Dashboard-Bot
 
 # Установи Python залежності
 pip install -r requirements.txt

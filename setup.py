@@ -248,7 +248,7 @@ class BotSetup:
         print("   - Email для HIBP/Email Search\n")
         
         print("📚 Документація: дивись README.md")
-        print("🧪 Тестування: python3 test_osint.py\n")
+        print("🧪 Тестування: python3 test.py\n")
         print("⚠️  ВАЖНО: Використовуй бот лише для законних цілей!\n")
         print("=" * 60 + "\n")
     

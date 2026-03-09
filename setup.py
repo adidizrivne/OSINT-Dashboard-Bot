@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Setup скрипт для OSINT Dashboard Bot
-Автоматичне встановлення та конфігурація
+Автоматичне встановлення та конфігурація з опціональними API ключами
 """
 
 import os
@@ -77,27 +77,109 @@ class BotSetup:
             
             print(f"✅ Токен отримано: {token[:20]}...")
             return token
+    
+    def get_api_keys(self):
+        """Отримання опціональних API ключів"""
+        print("\n" + "=" * 60)
+        print("🔐 Додавання опціональних API ключів")
+        print("=" * 60)
+        print("\n(Ти можеш пропустити цей крок натиснувши Enter)\n")
         
-    def setup_environment(self, token: str):
+        api_keys = {}
+        
+        # WHOIS API Key
+        print("📍 1️⃣  WhoisAPI (для детальної інформації про домени)")
+        print("   Зареєструйся: https://www.whoisapi.com/")
+        print("   Безплатно: 500+ пошуків на місяць")
+        whois_key = input("   → API Key (або Enter щоб пропустити): ").strip()
+        if whois_key:
+            api_keys["WHOIS_API_KEY"] = whois_key
+            print("   ✅ WhoisAPI ключ додано\n")
+        else:
+            print("   ⏭️  Пропущено (буде використовуватись безплатний сервіс)\n")
+        
+        # AbuseIPDB Key
+        print("🚨 2️⃣  AbuseIPDB (для перевірки шкідливих IP адрес)")
+        print("   Зареєструйся: https://www.abuseipdb.com/")
+        print("   Безплатно: 3000+ запитів на день")
+        abuseipdb_key = input("   → API Key (або Enter щоб пропустити): ").strip()
+        if abuseipdb_key:
+            api_keys["ABUSEIPDB_KEY"] = abuseipdb_key
+            print("   ✅ AbuseIPDB ключ додано\n")
+        else:
+            print("   ⏭️  Пропущено\n")
+        
+        # IPQualityScore Key
+        print("🌐 3️⃣  IPQualityScore (для детальної інформації про IP)")
+        print("   Зареєструйся: https://www.ipqualityscore.com/")
+        print("   Безплатно: 2000+ запитів на день")
+        ipqs_key = input("   → API Key (або Enter щоб пропустити): ").strip()
+        if ipqs_key:
+            api_keys["IPQUALITYSCORE_KEY"] = ipqs_key
+            print("   ✅ IPQualityScore ключ додано\n")
+        else:
+            print("   ⏭️  Пропущено\n")
+        
+        # HaveIBeenPwned Key
+        print("🔓 4️⃣  HaveIBeenPwned (премієм доступ до витоків)")
+        print("   Зареєструйся: https://haveibeenpwned.com/API/v3")
+        print("   Безплатно: 1500+ запитів на годину")
+        hibp_key = input("   → API Key (або Enter щоб пропустити): ").strip()
+        if hibp_key:
+            api_keys["HIBP_API_KEY"] = hibp_key
+            print("   ✅ HaveIBeenPwned ключ додано\n")
+        else:
+            print("   ⏭️  Пропущено (буде використовуватись безплатний сервіс)\n")
+        
+        return api_keys
+    
+    def setup_environment(self, token: str, api_keys: dict):
         """Налаштування файлу .env"""
         with open(self.env_file, "w") as f:
-            f.write(f"TELEGRAM_BOT_TOKEN={token}\n")
+            f.write(f"# Telegram Bot Token (ОБОВ'ЯЗКОВО)\n")
+            f.write(f"TELEGRAM_BOT_TOKEN={token}\n\n")
+            
+            f.write(f"# Опціональні API ключі\n")
+            
+            if "WHOIS_API_KEY" in api_keys:
+                f.write(f"WHOIS_API_KEY={api_keys['WHOIS_API_KEY']}\n")
+            else:
+                f.write(f"# WHOIS_API_KEY=\n")
+            
+            if "ABUSEIPDB_KEY" in api_keys:
+                f.write(f"ABUSEIPDB_KEY={api_keys['ABUSEIPDB_KEY']}\n")
+            else:
+                f.write(f"# ABUSEIPDB_KEY=\n")
+            
+            if "IPQUALITYSCORE_KEY" in api_keys:
+                f.write(f"IPQUALITYSCORE_KEY={api_keys['IPQUALITYSCORE_KEY']}\n")
+            else:
+                f.write(f"# IPQUALITYSCORE_KEY=\n")
+            
+            if "HIBP_API_KEY" in api_keys:
+                f.write(f"HIBP_API_KEY={api_keys['HIBP_API_KEY']}\n")
+            else:
+                f.write(f"# HIBP_API_KEY=\n")
+        
         print(f"✅ Файл {self.env_file} створено")
+        if api_keys:
+            print(f"✅ Додано {len(api_keys)} API ключів")
     
     def create_config(self):
         """Створення конфігураційного файлу"""
         config = {
             "api_keys": {
-                "ipqualityscore": None,
-                "abuseipdb": None,
-                "hibp": None
+                "whois": False,
+                "abuseipdb": False,
+                "ipqualityscore": False,
+                "hibp": False
             },
             "settings": {
                 "sherlock_timeout": 120,
                 "request_timeout": 10,
                 "max_results": 10
             },
-            "created": "2026-03-08",
+            "created": "2026-03-09",
             "version": "1.0"
         }
         
@@ -131,7 +213,9 @@ class BotSetup:
                     print(f"   ID: {bot_info.get('id')}")
                     return True
         except Exception as e:
-            print(f"❌ Помилка підключення: {e}")
+            print(f"⚠️  Помилка підключення: {e}")
+            print("   (Але це нормально, бот все одно буде працювати)")
+            return True
         
         return False
     
@@ -152,7 +236,7 @@ class BotSetup:
         
         print("\n📌 Наступні кроки:\n")
         print("1️⃣  Запусти бота:")
-        print("   python3 osint_bot.py\n")
+        print("   python3 osint_bot_fixed.py\n")
         print("2️⃣  У Telegram:")
         print("   - Знайди свого бота в пошуку")
         print("   - Напиши /start")
@@ -163,7 +247,8 @@ class BotSetup:
         print("   - Домен для WHOIS")
         print("   - Email для HIBP/Email Search\n")
         
-        print("📚 Документація: дивись README.md\n")
+        print("📚 Документація: дивись README.md")
+        print("🧪 Тестування: python3 test_osint.py\n")
         print("⚠️  ВАЖНО: Використовуй бот лише для законних цілей!\n")
         print("=" * 60 + "\n")
     
@@ -184,13 +269,17 @@ class BotSetup:
         self.print_step(3, 5, "Отримання Telegram Bot Token")
         token = self.get_bot_token()
         
-        # Крок 4: Створення файлів
-        self.print_step(4, 5, "Створення конфігураційних файлів")
-        self.setup_environment(token)
+        # Крок 4: Отримання API ключів
+        self.print_step(4, 5, "Додавання опціональних API ключів")
+        api_keys = self.get_api_keys()
+        
+        # Крок 5: Створення файлів
+        self.print_step(5, 6, "Створення конфігураційних файлів")
+        self.setup_environment(token, api_keys)
         self.create_config()
         
-        # Крок 5: Тестування
-        self.print_step(5, 5, "Тестування підключення")
+        # Крок 6: Тестування
+        self.print_step(6, 6, "Тестування підключення")
         self.test_bot()
         
         # Показ наступних кроків

@@ -52,11 +52,11 @@ SHERLOCK_DIR = "sherlock"
 
 class OSINTBot:
     """Основний клас для OSINT функцій"""
-    
+
     def __init__(self):
         self.config = self.load_config()
         self.sherlock_installed = self.check_sherlock()
-    
+
     def load_config(self):
         """Завантажує конфігурацію"""
         if os.path.exists(CONFIG_FILE):
@@ -68,12 +68,12 @@ class OSINTBot:
                 "abuseipdb": None,
             }
         }
-    
+
     def save_config(self):
         """Зберігає конфігурацію"""
         with open(CONFIG_FILE, "w") as f:
             json.dump(self.config, f, indent=2)
-    
+
     def check_sherlock(self):
         """Перевіряє наявність Sherlock"""
         try:
@@ -85,7 +85,7 @@ class OSINTBot:
             return result.returncode == 0
         except:
             return False
-    
+
     def sherlock_search(self, username: str) -> dict:
         """
         Пошук користувача через Sherlock
@@ -98,7 +98,7 @@ class OSINTBot:
                     ["pip", "install", "sherlock-project", "--quiet"],
                     timeout=60
                 )
-            
+
             logger.info(f"Sherlock пошук для: {username}")
             result = subprocess.run(
                 ["python3", "-m", "sherlock", username, "--csv", "--print-found"],
@@ -106,26 +106,26 @@ class OSINTBot:
                 timeout=120,
                 text=True
             )
-            
+
             results = {
                 "found": [],
                 "not_found": [],
                 "total": 0
             }
-            
+
             if result.stdout:
                 for line in result.stdout.split('\n'):
                     if line.strip() and username.lower() in line.lower():
                         results["found"].append(line.strip())
                         results["total"] += 1
-            
+
             return results
-        
+
         except subprocess.TimeoutExpired:
             return {"error": "⏱️ Пошук займає занадто багато часу. Спробуй пізніше."}
         except Exception as e:
             return {"error": f"❌ Помилка Sherlock: {str(e)}"}
-    
+
     def geoip_lookup(self, ip: str) -> dict:
         """
         GeoIP пошук за IP адресою
@@ -134,13 +134,13 @@ class OSINTBot:
         try:
             if not self.is_valid_ip(ip):
                 return {"error": "❌ Невірний IP формат"}
-            
+
             response = requests.get(
                 f"http://ip-api.com/json/{ip}",
                 timeout=10,
                 params={"fields": "status,country,regionName,city,lat,lon,isp,org,as"}
             )
-            
+
             if response.status_code == 200:
                 data = response.json()
                 if data.get("status") == "success":
@@ -155,15 +155,15 @@ class OSINTBot:
                         "org": data.get("org"),
                         "as": data.get("as")
                     }
-            
+
             return {"error": "❌ IP не знайдений"}
-        
+
         except requests.Timeout:
             return {"error": "⏱️ Затримка при з'єднанні"}
         except Exception as e:
             return {"error": f"❌ Помилка GeoIP: {str(e)}"}
-    
-   def whois_lookup(self, domain: str) -> dict:
+
+    def whois_lookup(self, domain: str) -> dict:
         """
         WHOIS пошук по доменам використовуючи python-whois
         Реалізація з твого коду
@@ -171,15 +171,15 @@ class OSINTBot:
         try:
             if not self.is_valid_domain(domain):
                 return {"error": "❌ Невірний формат домену"}
-            
+
             logger.info(f"WHOIS пошук для: {domain}")
-            
+
             import whois
-            
+
             try:
                 # Запит до WHOIS
                 w = whois.whois(domain)
-                
+
                 # Витяг даних
                 result = {
                     "success": True,
@@ -191,14 +191,14 @@ class OSINTBot:
                     "expires": str(w.expiration_date).split()[0] if w.expiration_date else "Невідомо",
                     "nameservers": w.name_servers if w.name_servers else []
                 }
-                
+
                 logger.info(f"WHOIS успішно отримано для {domain}")
                 return result
-            
+
             except whois.parser.PywhoisError as e:
                 logger.warning(f"WHOIS помилка для {domain}: {e}")
                 return {"error": f"❌ Домен не знайдений або WHOIS недоступний"}
-            
+
             except AttributeError as e:
                 logger.warning(f"WHOIS атрибут помилка для {domain}: {e}")
                 # Fallback - повертаємо що вдалося отримати
@@ -215,15 +215,15 @@ class OSINTBot:
                     }
                 except:
                     return {"error": "❌ Помилка при отриманні WHOIS даних"}
-        
+
         except ImportError:
             logger.error("WHOIS модуль не встановлений")
             return {"error": "❌ WHOIS модуль не встановлений. Встанови: pip install python-whois"}
-        
+
         except Exception as e:
             logger.error(f"WHOIS помилка: {e}")
             return {"error": f"❌ Помилка WHOIS: {str(e)[:100]}"}
-    
+
     def hibp_check(self, email: str) -> dict:
         """
         Перевірка електронної пошти в HaveIBeenPwned
@@ -231,20 +231,20 @@ class OSINTBot:
         try:
             if not self.is_valid_email(email):
                 return {"error": "❌ Невірна електронна адреса"}
-            
+
             import time
             time.sleep(2)  # Затримка щоб не блокувати
-            
+
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             }
-            
+
             response = requests.get(
                 f"https://haveibeenpwned.com/api/v3/breachedaccount/{email}",
                 headers=headers,
                 timeout=15
             )
-            
+
             if response.status_code == 200:
                 breaches = response.json()
                 return {
@@ -259,12 +259,12 @@ class OSINTBot:
                 return {"success": True, "breached": False, "note": "Проверка без авторизації"}
             else:
                 return {"success": True, "breached": False}
-        
+
         except requests.Timeout:
             return {"error": "⏱️ Затримка при з'єднанні до HIBP"}
         except Exception as e:
             return {"success": True, "breached": False}
-    
+
     def email_search(self, email: str) -> dict:
         """
         Пошук електронної пошти у публічних базах
@@ -272,10 +272,10 @@ class OSINTBot:
         try:
             if not self.is_valid_email(email):
                 return {"error": "❌ Невірна електронна адреса"}
-            
+
             import time
             time.sleep(1)
-            
+
             # Спробуємо простіший безплатний API
             response = requests.get(
                 f"https://api.hunter.io/v2/email-finder",
@@ -285,7 +285,7 @@ class OSINTBot:
                     "limit": 1
                 }
             )
-            
+
             if response.status_code == 200:
                 return {
                     "success": True,
@@ -309,7 +309,7 @@ class OSINTBot:
                         "ask_for_credentials": False
                     }
                 }
-        
+
         except Exception as e:
             return {
                 "success": True,
@@ -321,19 +321,19 @@ class OSINTBot:
                     "ask_for_credentials": False
                 }
             }
-    
+
     @staticmethod
     def is_valid_ip(ip: str) -> bool:
         """Перевірка IP формату"""
         pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
         return bool(re.match(pattern, ip))
-    
+
     @staticmethod
     def is_valid_domain(domain: str) -> bool:
         """Перевірка домену"""
         pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$'
         return bool(re.match(pattern, domain))
-    
+
     @staticmethod
     def is_valid_email(email: str) -> bool:
         """Перевірка email"""
@@ -343,12 +343,12 @@ class OSINTBot:
 
 class TelegramBot:
     """Телеграм бот"""
-    
+
     def __init__(self, token: str):
         self.token = token
         self.osint = OSINTBot()
         self.user_states = {}
-    
+
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Стартова команда"""
         keyboard = [
@@ -359,9 +359,9 @@ class TelegramBot:
             [InlineKeyboardButton("📧 Email Search", callback_data="email_search")],
             [InlineKeyboardButton("ℹ️ Про бот", callback_data="about")]
         ]
-        
+
         reply_markup = InlineKeyboardMarkup(keyboard)
-        
+
         await update.message.reply_text(
             "👋 Добро пожалувати до <b>OSINT Dashboard Bot</b>!\n\n"
             "Цей бот допоможе тобі знайти інформацію про:\n"
@@ -373,22 +373,22 @@ class TelegramBot:
             parse_mode=ParseMode.HTML,
             reply_markup=reply_markup
         )
-    
+
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Обробка натискання кнопок"""
         query = update.callback_query
         await query.answer()
-        
+
         user_id = query.from_user.id
         choice = query.data
-        
+
         if choice == "start":
             # Повернення до головного меню
             await self.start(update, context)
             return
-        
+
         self.user_states[user_id] = choice
-        
+
         if choice == "about":
             keyboard = [
                 [InlineKeyboardButton("🔙 Назад до меню", callback_data="start")]
@@ -408,7 +408,7 @@ class TelegramBot:
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
             return
-        
+
         prompts = {
             "sherlock": "Введи username для пошуку (напр. john_doe):",
             "geoip": "Введи IP адресу для геолокації (напр. 8.8.8.8):",
@@ -416,16 +416,16 @@ class TelegramBot:
             "hibp": "Введи email для перевірки HaveIBeenPwned:",
             "email_search": "Введи email для пошуку:"
         }
-        
+
         await query.edit_message_text(
             text=prompts.get(choice, "Введи значення:")
         )
-    
+
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Обробка повідомлень від користувача"""
         user_id = update.message.from_user.id
         query = update.message.text.strip()
-        
+
         if user_id not in self.user_states:
             keyboard = [
                 [InlineKeyboardButton("🔙 На початок", callback_data="start")]
@@ -435,14 +435,14 @@ class TelegramBot:
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
             return
-        
+
         choice = self.user_states[user_id]
-        
+
         status_msg = await update.message.reply_text("⏳ Обробка запиту...")
-        
+
         try:
             result = None
-            
+
             if choice == "sherlock":
                 result = self.osint.sherlock_search(query)
             elif choice == "geoip":
@@ -453,20 +453,20 @@ class TelegramBot:
                 result = self.osint.hibp_check(query)
             elif choice == "email_search":
                 result = self.osint.email_search(query)
-            
+
             if result is None:
                 await status_msg.edit_text("❌ Невідомий запит")
                 return
-            
+
             response = self.format_result(choice, result)
-            
+
             await status_msg.delete()
-            
+
             await update.message.reply_text(
                 response,
                 parse_mode=ParseMode.HTML
             )
-            
+
             # Повернення до меню
             keyboard = [
                 [InlineKeyboardButton("🔍 Sherlock (Username)", callback_data="sherlock")],
@@ -476,17 +476,17 @@ class TelegramBot:
                 [InlineKeyboardButton("📧 Email Search", callback_data="email_search")],
                 [InlineKeyboardButton("ℹ️ Про бот", callback_data="about")]
             ]
-            
+
             await update.message.reply_text(
                 "✅ Готовий до наступного пошуку?",
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
-        
+
         except Exception as e:
             logger.error(f"Помилка: {e}")
             await status_msg.delete()
             await update.message.reply_text(f"❌ Помилка: {str(e)[:200]}")
-            
+
             # Меню при помилці
             keyboard = [
                 [InlineKeyboardButton("🔙 На початок", callback_data="start")]
@@ -495,33 +495,33 @@ class TelegramBot:
                 "Спробуй ще раз",
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
-    
+
     def format_result(self, query_type: str, result: dict) -> str:
         """Форматування результатів для Telegram"""
-        
+
         if "error" in result:
             return result["error"]
-        
+
         if query_type == "sherlock":
             if "error" in result:
                 return result["error"]
-            
+
             found_count = len(result.get("found", []))
             text = f"<b>🔍 Sherlock Результати:</b>\n\n"
-            
+
             if found_count > 0:
                 text += f"✅ <b>Знайдено профілів: {found_count}</b>\n\n"
                 for site in result["found"][:10]:
                     text += f"• {site}\n"
             else:
                 text += "❌ Профілі не знайдені\n"
-            
+
             return text
-        
+
         elif query_type == "geoip":
             if not result.get("success"):
                 return result.get("error", "❌ Помилка GeoIP")
-            
+
             return (
                 f"<b>🌍 GeoIP Інформація:</b>\n\n"
                 f"🌐 <b>Країна:</b> {result.get('country')}\n"
@@ -532,11 +532,11 @@ class TelegramBot:
                 f"🏢 <b>Організація:</b> {result.get('org')}\n"
                 f"📡 <b>AS:</b> {result.get('as')}\n"
             )
-        
+
         elif query_type == "whois":
             if not result.get("success"):
                 return result.get("error", "❌ Помилка WHOIS")
-            
+
             return (
                 f"<b>🏢 WHOIS Інформація:</b>\n\n"
                 f"🌐 <b>Домен:</b> {result.get('domain')}\n"
@@ -546,11 +546,11 @@ class TelegramBot:
                 f"⏰ <b>Закінчується:</b> {result.get('expires')}\n"
                 f"🔗 <b>NS:</b> {', '.join(result.get('nameservers', []))}\n"
             )
-        
+
         elif query_type == "hibp":
             if not result.get("success"):
                 return result.get("error", "❌ Помилка HIBP")
-            
+
             if result.get("breached"):
                 breaches = ", ".join(result.get("breaches", []))
                 return (
@@ -564,11 +564,11 @@ class TelegramBot:
                     f"<b>🔓 HaveIBeenPwned Результат:</b>\n\n"
                     f"✅ <b>Добра новина!</b> Цей email не був знайдений у витоках.\n"
                 )
-        
+
         elif query_type == "email_search":
             if not result.get("success"):
                 return result.get("error", "❌ Помилка Email Search")
-            
+
             return (
                 f"<b>📧 Email Search Результат:</b>\n\n"
                 f"⭐ <b>Репутація:</b> {result.get('reputation')}\n"
@@ -576,33 +576,34 @@ class TelegramBot:
                 f"📬 <b>Доставляється:</b> {'Так' if result.get('details', {}).get('deliverable') else 'Ні'}\n"
                 f"✔️ <b>Формат валідний:</b> {'Так' if result.get('details', {}).get('valid_format') else 'Ні'}\n"
             )
-        
+
         return "❌ Невідомий тип запиту"
-    
+
     def run(self):
         """Запуск бота"""
         app = Application.builder().token(self.token).build()
-        
+
         app.add_handler(CommandHandler("start", self.start))
         app.add_handler(CallbackQueryHandler(self.button_callback))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
-        
+
         logger.info("✅ Бот запущено!")
         app.run_polling()
 
 
-def main():
+    def main():
+
     """Точка входу"""
     print("=" * 50)
     print("🤖 OSINT Dashboard Bot для Telegram")
     print("=" * 50)
-    
+
     token = os.getenv("TELEGRAM_BOT_TOKEN") or input("\n🔑 Введи Telegram Bot Token: ").strip()
-    
+
     if not token:
         print("❌ Bot Token не знайдений!")
         return
-    
+
     bot = TelegramBot(token)
     bot.run()
 

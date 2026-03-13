@@ -163,88 +163,66 @@ class OSINTBot:
         except Exception as e:
             return {"error": f"❌ Помилка GeoIP: {str(e)}"}
     
-    def whois_lookup(self, domain: str) -> dict:
+   def whois_lookup(self, domain: str) -> dict:
         """
-        WHOIS пошук по доменам через безплатний API
+        WHOIS пошук по доменам використовуючи python-whois
+        Реалізація з твого коду
         """
         try:
             if not self.is_valid_domain(domain):
                 return {"error": "❌ Невірний формат домену"}
             
-            # Спробуємо API whoisapi.com (безплатно без ключа)
-            try:
-                response = requests.get(
-                    f"https://www.whoisapi.com/api/v1",
-                    params={
-                        "apiKey": "at_free",  # Безплатний публічний ключ
-                        "domainName": domain
-                    },
-                    timeout=10
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    if data.get("success"):
-                        return {
-                            "success": True,
-                            "domain": data.get("domainName", domain),
-                            "registrar": data.get("registrar", {}).get("name", "Невідомо"),
-                            "created": data.get("createdDate", "Невідомо").split()[0] if data.get("createdDate") else "Невідомо",
-                            "updated": data.get("updatedDate", "Невідомо").split()[0] if data.get("updatedDate") else "Невідомо",
-                            "expires": data.get("expiresDate", "Невідомо").split()[0] if data.get("expiresDate") else "Невідомо",
-                            "nameservers": data.get("nameServers", [])[:3]
-                        }
-            except Exception as e:
-                logger.debug(f"whoisapi.com помилка: {e}")
+            logger.info(f"WHOIS пошук для: {domain}")
             
-            # Fallback: спробуємо whois.nic.ad.jp (безплатно)
-            try:
-                response = requests.get(
-                    f"https://api.domainsdb.info/v1/domain/search",
-                    params={"domain": domain},
-                    timeout=10
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    if data.get("success") and data.get("data"):
-                        domain_data = data["data"][0]
-                        return {
-                            "success": True,
-                            "domain": domain_data.get("domain", domain),
-                            "registrar": domain_data.get("registrar", "Невідомо"),
-                            "created": domain_data.get("create_date", "Невідомо"),
-                            "updated": domain_data.get("update_date", "Невідомо"),
-                            "expires": domain_data.get("expiration_date", "Невідомо"),
-                            "nameservers": []
-                        }
-            except Exception as e:
-                logger.debug(f"domainsdb.info помилка: {e}")
+            import whois
             
-            # Fallback: базові дані
-            return {
-                "success": True,
-                "domain": domain,
-                "registrar": "Невідомо (спробуй перевірити на whois.com)",
-                "created": "Невідомо",
-                "updated": "Невідомо",
-                "expires": "Невідомо",
-                "nameservers": []
-            }
+            try:
+                # Запит до WHOIS
+                w = whois.whois(domain)
+                
+                # Витяг даних
+                result = {
+                    "success": True,
+                    "domain": w.domain if w.domain else domain,
+                    "registrar": w.registrar if hasattr(w, 'registrar') and w.registrar else "Невідомо",
+                    "owner": w.owner if hasattr(w, 'owner') and w.owner else "Невідомо",
+                    "created": str(w.creation_date).split()[0] if w.creation_date else "Невідомо",
+                    "updated": str(w.updated_date).split()[0] if w.updated_date else "Невідомо",
+                    "expires": str(w.expiration_date).split()[0] if w.expiration_date else "Невідомо",
+                    "nameservers": w.name_servers if w.name_servers else []
+                }
+                
+                logger.info(f"WHOIS успішно отримано для {domain}")
+                return result
+            
+            except whois.parser.PywhoisError as e:
+                logger.warning(f"WHOIS помилка для {domain}: {e}")
+                return {"error": f"❌ Домен не знайдений або WHOIS недоступний"}
+            
+            except AttributeError as e:
+                logger.warning(f"WHOIS атрибут помилка для {domain}: {e}")
+                # Fallback - повертаємо що вдалося отримати
+                try:
+                    return {
+                        "success": True,
+                        "domain": domain,
+                        "registrar": getattr(w, 'registrar', 'Невідомо'),
+                        "owner": getattr(w, 'owner', 'Невідомо'),
+                        "created": str(getattr(w, 'creation_date', 'Невідомо')).split()[0],
+                        "updated": str(getattr(w, 'updated_date', 'Невідомо')).split()[0],
+                        "expires": str(getattr(w, 'expiration_date', 'Невідомо')).split()[0],
+                        "nameservers": getattr(w, 'name_servers', [])
+                    }
+                except:
+                    return {"error": "❌ Помилка при отриманні WHOIS даних"}
+        
+        except ImportError:
+            logger.error("WHOIS модуль не встановлений")
+            return {"error": "❌ WHOIS модуль не встановлений. Встанови: pip install python-whois"}
         
         except Exception as e:
             logger.error(f"WHOIS помилка: {e}")
-            return {
-                "success": True,
-                "domain": domain,
-                "registrar": "Невідомо",
-                "created": "Невідомо",
-                "updated": "Невідомо",
-                "expires": "Невідомо",
-                "nameservers": []
-            }
+            return {"error": f"❌ Помилка WHOIS: {str(e)[:100]}"}
     
     def hibp_check(self, email: str) -> dict:
         """
